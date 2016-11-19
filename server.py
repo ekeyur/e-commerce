@@ -71,11 +71,47 @@ def shopping_cart_get():
     auth = req['auth_token']
     result = db.query('select id from customer inner join auth_token on auth_token.customer_id = customer.id where auth_token.token = $1',auth).dictresult()
     if(len(result) > 0):
-        print result[0]['id']
+        print "id"+result[0]['id']
         cart_items = db.query('select product_id from product_in_shopping_cart where customer_id = $1', result[0]['id']).dictresult()
         return jsonify(cart_items)
     else:
         return "Access Forbidden", 403
+
+#checkout API
+@app.route('/api/shopping_cart/checkout', methods=['POST'])
+def checkout():
+    total_price = 0;
+    shopitems = [];
+    req = request.args
+    jreq = request.get_json()
+    auth = req['auth_token']
+    result = db.query('select id from customer inner join auth_token on auth_token.customer_id = customer.id where auth_token.token = $1',auth).dictresult()
+    if(len(result) > 0):
+        print result[0]['id']
+        #calculating the total_price
+        for product in jreq:
+            result1 = db.query('select price from product where id = $1',product['product_id']).dictresult()[0]
+            total_price += result1['price']
+            shopitems.append(product['product_id'])
+        # making an entry on the purchase table
+        db.insert('purchase',{
+        'customer_id' : result[0]['id'],
+        'total_price' : total_price
+        })
+        #updating the product_in_purchase table
+        purchase_id = db.query('select max(id) from purchase where customer_id = $1',result[0]['id']).dictresult()[0]['max']
+        for products in shopitems:
+            db.insert('product_in_purchase',{
+            'product_id' : products,
+            'purchase_id':purchase_id
+            })
+        #deleting the cart_items for that customer
+        db.query('Delete from product_in_shopping_cart where customer_id = $1',result[0]['id'])
+
+        return jsonify(jreq)
+    else:
+        return "Access Forbidden", 403
+
 
     #Login Route
 @app.route('/api/user/login', methods=["POST"])
@@ -106,7 +142,6 @@ def login():
                 'token_expires' : '2016-12-31',
                 'customer_id' : query['id']
             })
-
         return jsonify({
         "user" : query,
         "auth_token" :
