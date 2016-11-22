@@ -1,0 +1,19 @@
+<div class="container">
+  <h1>Total : {{ccart.cart_total[0].sum | currency}}</h1>
+  <div class="col-md-3" ng-repeat="product in ccart.cart_items">
+    {{product.name}} : {{product.price | currency}}
+    <img class = "img-size" ng-src="{{product.image_path}}">
+  </div>
+</div>
+
+<div class="">
+  <form ng-submit="submit_address()">
+    <!-- <input  type="text" ng-model="fname" placeholder="George" required>
+    <input  type="text" ng-model="lname" placeholder="Burdell" required><br> -->
+    <input  type="text" ng-model="address" placeholder="123 first st." required>
+    <input  type="text" ng-model="city" placeholder="Atlanta" required><br>
+    <input  type="text" ng-model="state" placeholder="GA" required>
+    <input  type="text" ng-model="zip" placeholder="95132" required>
+    <button action="submit">Pay</button>
+  </form>
+</div>
