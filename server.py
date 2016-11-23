@@ -9,12 +9,22 @@ import stripe
 tmp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask('e-commerce', static_url_path='')
 
+# stripe keys
+# stripe_keys = {
+#   'secret_key': os.environ['SECRET_KEY'],
+#   'publishable_key': os.environ['PUBLISHABLE_KEY']
+# }
+#
+# stripe.api_key = stripe_keys['secret_key']
+
 db = pg.DB(
    dbname=os.environ.get('PG_DBNAME'),
    host=os.environ.get('PG_HOST'),
    user=os.environ.get('PG_USERNAME'),
    passwd=os.environ.get('PG_PASSWORD')
 )
+
+
 #route to index.html
 @app.route('/')
 def home():
@@ -90,14 +100,6 @@ def checkout():
     shopitems = []
     jreq = request.get_json()
     auth = jreq['auth_token']
-    address = jreq['address']
-    city = jreq['city']
-    zipcode = jreq['zip']
-    state = jreq['state']
-    total_price = jreq['total_price']
-    print state
-    print city
-    print total_price
     result = db.query('select id from customer inner join auth_token on auth_token.customer_id = customer.id where auth_token.token = $1',auth).dictresult()
     if(len(result) > 0):
         print result[0]['id']
@@ -109,11 +111,11 @@ def checkout():
         # # making an entry on the purchase table
         db.insert('purchase',{
         'customer_id' : result[0]['id'],
-        'total_price' : total_price,
-        'city' : city,
-        'zipcode' : zipcode,
-        'state' : state,
-        'address' : address
+        'total_price' : jreq['total_price'],
+        'city' : jreq['city'],
+        'zipcode' : jreq['zip'],
+        'state' : jreq['state'],
+        'address' : jreq['address'],
         })
         #updating the product_in_purchase table
         purchase_id = db.query('select max(id) from purchase where customer_id = $1',result[0]['id']).dictresult()[0]['max']

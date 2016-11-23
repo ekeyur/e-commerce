@@ -1,5 +1,6 @@
-<h1>All Products</h1>
+
 <div class="container-fluid">
+  <h1>All Products</h1>
   <div class="col-md-3" ng-repeat="product in products">
     <a ui-sref="oneProduct({id : product.id})"><img class="img-size" ng-src="{{product.image_path}}" alt="" /></a>
   </div>

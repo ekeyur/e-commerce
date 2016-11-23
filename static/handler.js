@@ -4,7 +4,7 @@ app.config(function($stateProvider,$urlRouterProvider){
   $stateProvider
   .state({
     name: 'allProducts',
-    url: '/all-products',
+    url: '/',
     templateUrl:'all-products.html',
     controller: 'all-productsCtrl'
   })
@@ -39,7 +39,7 @@ app.config(function($stateProvider,$urlRouterProvider){
 
   .state({
     name: 'login',
-    url:'/user/login',
+    url:'/api/user/login',
     templateUrl:'login.html',
     controller:'loginCtrl'
   })
@@ -58,23 +58,35 @@ app.config(function($stateProvider,$urlRouterProvider){
     controller:'viewCartCtrl'
   });
 
+  $urlRouterProvider.otherwise('/');
 });
+
 
 app.factory('BackEndService',function($http,$cookies,$rootScope){
   var service = {};
   var cart = {};
-  service.auth_token = $cookies.getObject('user_cookie').auth_token.token;
-  $rootScope.user = $cookies.getObject('user_cookie').user;
+  var logindata = $cookies.getObject('user_cookie');
+  if(logindata){
+  service.auth_token = logindata.auth_token.token;
+  $rootScope.user = logindata.user;
+  console.log($rootScope.user);
+  }
+    $rootScope.logOut = function(){
+    $rootScope.user = null;
+    service.auth_token = null;
+    $cookies.remove('user_cookie');
+};
 
   service.login = function(user){
     var url = "/api/user/login";
-    console.log(user);
     return $http({
       method : 'POST',
       url : url,
       data : user
     }).success(function(data){
       service.auth_token = data.auth_token.token;
+      $rootScope.user = data.user.username;
+      $cookies.putObject('logindata',data);
     });
   };
 
@@ -152,13 +164,12 @@ app.controller('checkoutSuccessCtrl',function(BackEndService,$scope,$state,$cook
 
 });
 
-app.controller('viewCartCtrl',function(BackEndService,$scope,$state){
+app.controller('viewCartCtrl',function($rootScope,BackEndService,$scope,$state){
   BackEndService.view_cart().success(function(data){
     $scope.cart = data;
     console.log(data);
     BackEndService.checkOut(data);
     $state.go('viewCart');
-
     $scope.checkOut = function(){
     $state.go('checkout');
     };
@@ -166,7 +177,7 @@ app.controller('viewCartCtrl',function(BackEndService,$scope,$state){
   });
 });
 
-app.controller('addCartCtrl',function($state,BackEndService,$stateParams,$scope,$cookies){
+app.controller('addCartCtrl',function($rootScope,$state,BackEndService,$stateParams,$scope,$cookies){
   $scope.addtoCart = function(){
     var cookie = $cookies.getObject('user_cookie').auth_token.token;
     var obj = {'auth_token':cookie, 'product_id' : $stateParams.id};
@@ -176,7 +187,7 @@ app.controller('addCartCtrl',function($state,BackEndService,$stateParams,$scope,
   };
 });
 
-app.controller('checkoutCtrl',function($scope,$state,BackEndService,$cookies){
+app.controller('checkoutCtrl',function($rootScope,$scope,$state,BackEndService,$cookies){
   console.log(BackEndService.getCart());
      $scope.ccart = BackEndService.getCart();
      $scope.submit_address = function(){
@@ -193,23 +204,25 @@ app.controller('checkoutCtrl',function($scope,$state,BackEndService,$cookies){
 app.controller('loginCtrl',function($state,$rootScope,BackEndService,$scope,$cookies){
   $scope.login = function()
   {
-    var user = {'uname':$scope.uname, 'pass' : $scope.password};
-    BackEndService.login(user).success(function(data){
-      $cookies.putObject('user_cookie',data);
-      $rootScope.user = data.user;
+     var user = {'uname':$scope.uname, 'pass' : $scope.password};
+      BackEndService.login(user).success(function(data){
+      console.log(data);
       $state.go('allProducts');
+    }).error(function(){
+      console.log("Login Error");
+      $scope.loginFailed = true;
     });
   };
 });
 
-app.controller('all-productsCtrl',function($scope,BackEndService){
+app.controller('all-productsCtrl',function($rootScope,$scope,BackEndService){
   BackEndService.allProducts().success(function(data){
     console.log(data);
     $scope.products = data;
   });
 });
 
-app.controller('signupCtrl',function($scope,BackEndService,$state)
+app.controller('signupCtrl',function($rootScope,$scope,BackEndService,$state)
 {
   $scope.signup = function(){
     var user = {'uname':$scope.uname, 'fname':$scope.fname, 'lname':$scope.lname, 'email':$scope.email, 'password':$scope.password};
@@ -220,7 +233,8 @@ app.controller('signupCtrl',function($scope,BackEndService,$state)
   };
 });
 
-app.controller('one-productCtrl',function($scope,BackEndService,$stateParams){
+app.controller('one-productCtrl',function($rootScope,$scope,BackEndService,$stateParams){
+  $rootScope.showbutton = true;
   BackEndService.oneProduct($stateParams.id).success(function(data){
     console.log(data);
     $scope.oneproduct = data[0];
